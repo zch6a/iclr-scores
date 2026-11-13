@@ -1,10 +1,10 @@
 :root {
   --bg: #fbfbfa; --fg: #1d1f21; --muted: #5f6368; --line: #e3e3e0; --card: #ffffff;
-  --acc: #2f6fd1; --rej: #b9bec7; --wd: #d9822b; --dis: #9a4fc4; --mark: #c0392b; --focus: #2f6fd1;
+  --acc: #2f6fd1; --rej: #8a919c; --wd: #c06a12; --dis: #9a4fc4; --mark: #c0392b; --focus: #2f6fd1;
 }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #15171a; --fg: #e6e6e3; --muted: #9aa0a6; --line: #2c3036; --card: #1c1f23;
-    --acc: #6ea3f0; --rej: #5b616b; --wd: #f0a35e; --dis: #c58ae6; --mark: #ff7a6b; --focus: #6ea3f0; }
+    --acc: #6ea3f0; --rej: #7b828d; --wd: #f0a35e; --dis: #c58ae6; --mark: #ff7a6b; --focus: #6ea3f0; }
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
@@ -33,6 +33,7 @@ form button { font: inherit; padding: 7px 14px; border: 0; border-radius: 6px; b
 .bars .few { opacity: 0.35; }
 .bars .marker { stroke: var(--mark); stroke-dasharray: 4 3; }
 .bars .marker-text { fill: var(--mark); }
+.faint-note { font-size: 13px; color: var(--muted); margin: 2px 0; }
 .legend { font-size: 13px; color: var(--muted); margin: 4px 0; display: flex; gap: 14px; flex-wrap: wrap; }
 .key::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; background: currentColor; }
 .key.acc::before { background: var(--acc); } .key.rej::before { background: var(--rej); } .key.wd::before { background: var(--wd); } .key.dis::before { background: var(--dis); }
@@ -50,5 +51,6 @@ a { color: var(--acc); }
 @media (max-width: 560px) {
   .ci { width: 70px; }
   .big { font-size: 28px; }
-  td:nth-child(3), th:nth-child(3) { display: none; }
+  .topics td:nth-child(3), .topics th:nth-child(3) { display: none; }  /* the topics' "accepted" count: the rate says it */
 }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }  /* for screen readers only */

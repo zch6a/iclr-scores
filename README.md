@@ -21,7 +21,7 @@ fared better, and the odds for your own scores.
 <p align="center"><b><a href="https://zch6a.github.io/iclr-scores/">zch6a.github.io/iclr-scores</a></b></p>
 
 ```console
-$ uvx --from git+https://github.com/zch6a/iclr-scores@v0 iclr-scores odds 6 6 8 5 --year 2025
+$ uvx --from git+https://github.com/zch6a/iclr-scores iclr-scores odds 6 6 8 5 --year 2025
 ICLR 2025, scores 6 6 8 5 (mean 6.25, spread 1.09):
   1,667 of the 2,047 decided papers with a mean within 0.25 were accepted: 81% (95% interval 80%-83%)
   the year's model (mean, spread, lowest score) gives 81%
@@ -36,8 +36,8 @@ From 28,444 papers that reached a decision with their reviewers' scores (ICLR 20
 - **The line is steep.** At ICLR 2025, papers with a mean score of 5.0–5.5 were accepted 10% of the time, 5.5–6.0
   32%, 6.0–6.5 77%, 6.5–7.0 94%. Half were accepted at a mean of about 5.8, and that point has stayed between 5.8 and
   6.1 every year but 2020 (5.4, on a 1/3/6/8 scale).
-- **Disagreement cuts both ways.** At the same mean, a paper whose reviewers disagreed did better below the line and
-  worse above it: at ICLR 2025, with a mean of 5.0–5.5, 15% accepted when they disagreed and 4% when they agreed; with
+- **Disagreement cuts both ways.** At the same mean, a paper whose reviewers disagreed (a spread of scores above the
+  year's median) did better below the line and worse above it: at ICLR 2025, with a mean of 5.0–5.5, 15% accepted when they disagreed and 4% when they agreed; with
   6.0–6.5, 68% against 90%.
 - **Withdrawals are of the low scores.** In 2025 more than half the papers with a mean under 4.5 were withdrawn, 19% at
   5.0–5.5, almost none above 6.5.
@@ -45,14 +45,15 @@ From 28,444 papers that reached a decision with their reviewers' scores (ICLR 20
   accepted, against 51% on diffusion models and 62% on 3D scenes (labels from the papers' keywords; about half the
   papers have one).
 
-Each year has its own page section: the acceptance rate by mean score, mean scores by outcome, agreement, withdrawals,
-topics with their 95% intervals, and a calculator. Every chart's numbers are also in a table.
+For each year the page shows the acceptance rate by mean score, mean scores by outcome, agreement, withdrawals and
+topics with their 95% intervals, with a calculator; every chart's numbers are also in a table, and the year and scores
+are kept in the address, so a link shows the same.
 
 ## Where the numbers come from
 
 - **The data**: the [ICLR dataset](https://github.com/berenslab/iclr-dataset) of Rita González-Márquez and Dmitry
-  Kobak (MIT licensed), a scrape of every ICLR submission on OpenReview, pinned to one version by commit, size and
-  SHA-256. Only the year, the decision, the reviewers' scores and the topic label are read; titles, abstracts and
+  Kobak (MIT licensed), a scrape of ICLR's submissions on OpenReview (all but the few with a placeholder abstract),
+  pinned to one version by commit, size and SHA-256. Only the year, the decision, the reviewers' scores and the topic label are read; titles, abstracts and
   authors are not. Please cite their paper: *Learning representations of learning representations*, DMLR workshop at
   ICLR 2024, [arXiv:2404.08403](https://arxiv.org/abs/2404.08403).
 - **Decided** means accepted (oral, spotlight or poster), rejected, or (2017–2018) invited to the workshop track;
@@ -66,9 +67,9 @@ topics with their 95% intervals, and a calculator. Every chart's numbers are als
 ## Use it
 
 ```bash
-uvx --from git+https://github.com/zch6a/iclr-scores@v0 iclr-scores odds 6 6 8 5 --year 2025          # --json for scripts
-uvx --from git+https://github.com/zch6a/iclr-scores@v0 iclr-scores years
-uvx --from "iclr-scores[build] @ git+https://github.com/zch6a/iclr-scores@v0" iclr-scores build --out site
+uvx --from git+https://github.com/zch6a/iclr-scores iclr-scores odds 6 6 8 5 --year 2025          # --json for scripts
+uvx --from git+https://github.com/zch6a/iclr-scores iclr-scores years
+uvx --from "iclr-scores[build] @ git+https://github.com/zch6a/iclr-scores" iclr-scores build --out site
 ```
 
 `odds` and `years` read the published statistics (a 23 KB file from the site), or a built one with `--stats`.

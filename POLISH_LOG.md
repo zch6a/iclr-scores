@@ -92,3 +92,32 @@ odds); all the same, and checked again on the published data after this round's 
 Tests: 16 Python (doctests included) and 15 JS. ruff, ruff format, mypy clean.
 
 Next: polishing round 3 (the site at phone speed; keyboard and screen-reader use; the README's claims read again).
+
+### 2026-11-14 — polishing round 3
+
+**At a phone's speed** (headless Chrome over the DevTools protocol: 390×844 at 2×, the CPU slowed 4×, 150 ms and
+1.6 Mb/s): the page with its charts and the calculator's answer 1.2 s after navigation, 47 KB in all; a year's
+charts redrawn in 49 ms (median; 61 ms at most); four keystrokes in the calculator 12 ms together. Nothing to do.
+
+**Keyboard and screen reader.** The page was mostly sound (named regions, charts as images with names, every
+chart's numbers in a table, a labelled input, the year buttons' pressed state, 19 tab stops in reading order). Fixed:
+- the numbers tables' first column was headed with the chart's caption: now “Mean score” or “Year”, with
+  `scope` on headers and the caption as a `<caption>` (for screen readers only);
+- the five “The numbers” toggles sounded the same: each now carries its chart's name for a screen reader;
+- faint bars and greyed topic rows meant “fewer than 30 papers” without saying so: a note says it where they appear;
+- contrast of the bars against the background (WCAG 1.4.11 asks 3:1 of graphics): grey 1.87 → 3.18, orange
+  2.93 → 3.95, dark mode's grey 2.65 → 4.27 (measured in the page);
+- at phone width a rule meant for the topics table hid the third column of every table, so the chart tables lost
+  “withdrawn” and “reviewers disagree”: it applies to the topics table only.
+
+**The README read again, its commands run as written** (from GitHub, in an empty folder with its own uv cache):
+`odds`, `years`, and `build` with the build extra (42 s: the pinned 49 MB file downloaded, checked, read and
+deleted; the page and its data written). The commands named `@v0`, which exists only once v0.1.0 is released, so they
+name the main branch until then (README in both languages, the skill). Claims tightened: the dataset is ICLR's
+submissions but the few with a placeholder abstract, not every one; “disagreed” is defined (a spread above the year's
+median), as on the page; the page's description says the address keeps the year and the scores.
+
+Tests: 16 Python (doctests included) and 15 JS. ruff, ruff format, mypy clean.
+
+Next: polishing round 4 (engineering: a clean install from the wheel, the workflows' permissions and pins, a
+dependency audit, the CLI's edge cases).

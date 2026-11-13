@@ -32,7 +32,7 @@ const range = (edges, i) => `${edges[i].toFixed(1)}–${edges[i + 1].toFixed(1)}
  * A bar chart with its table. Each series is {name, cls, values: [{value, n, text}]}; values are rates (0..1) when
  * `rate`, else counts. Bars of fewer than ENOUGH papers are drawn faint.
  */
-function chart(box, { labels, series, rate = true, caption, marker = null, edges = null }) {
+function chart(box, { labels, series, rate = true, caption, marker = null, edges = null, axis = "Mean score" }) {
   // drawn at the box's own width, so that its text stays readable on a phone
   const W = Math.max(300, Math.min(760, box.clientWidth || 720)), H = W < 500 ? 200 : 220, L = 40, B = 34, T = 10, R = 10;
   const top = Math.max(1, ...series.flatMap((s) => s.values.map((v) => v.value)));
@@ -71,12 +71,16 @@ function chart(box, { labels, series, rate = true, caption, marker = null, edges
     // left of the line, where the bars before it are short
     g.append(svg("text", { x: x - 5, y: T + (H - T - B) * 0.4, class: "axis marker-text", "text-anchor": "end" }, marker.text));
   }
-  const table = el("table", {}, el("thead", {}, el("tr", {}, el("th", {}, caption.split(":")[0]), ...series.map((s) => el("th", {}, s.name)))));
+  const table = el("table", {}, el("caption", { class: "sr" }, caption),
+    el("thead", {}, el("tr", {}, el("th", { scope: "col" }, axis), ...series.map((s) => el("th", { scope: "col" }, s.name)))));
   const body = el("tbody");
-  labels.forEach((lab, i) => body.append(el("tr", {}, el("th", {}, lab), ...series.map((s) => el("td", {}, s.values[i]?.n ? s.values[i].text : "–")))));
+  labels.forEach((lab, i) => body.append(el("tr", {}, el("th", { scope: "row" }, lab), ...series.map((s) => el("td", {}, s.values[i]?.n ? s.values[i].text : "–")))));
   table.append(body);
   const legend = el("p", { class: "legend" }, ...series.map((s) => el("span", { class: `key ${s.cls}` }, s.name)));
-  box.replaceChildren(g, series.length > 1 ? legend : "", el("details", {}, el("summary", {}, "The numbers"), table));
+  // what a faint bar means, said where there is one
+  const faint = rate && series.some((s) => s.values.some((v) => v && v.n && v.n < ENOUGH));
+  box.replaceChildren(g, series.length > 1 ? legend : "", faint ? el("p", { class: "faint-note" }, `Faint bars: fewer than ${ENOUGH} papers, a rate that could move a lot.`) : "",
+    el("details", {}, el("summary", {}, "The numbers", el("span", { class: "sr" }, `: ${caption}`)), table)); // each toggle named for a screen reader
 }
 
 // ------------------------------------------------------------------ the year's charts
@@ -132,7 +136,7 @@ function renderTrend() {
   const years = Object.keys(state.doc.years).filter((k) => state.doc.years[k].decided);
   const ys = years.map((k) => state.doc.years[k]);
   chart($("trend"), {
-    labels: years, caption: "Accepted share of the decided papers, by year",
+    labels: years, axis: "Year", caption: "Accepted share of the decided papers, by year",
     series: [{ name: "accepted", cls: "acc", values: ys.map((y) => ({ value: y.accepted / y.decided, n: y.decided, text: `${pct(y.accepted / y.decided)} of ${num(y.decided)}${y.half ? `; half accepted at a mean of ${y.half.toFixed(2)}` : ""}` })) }],
   });
 }
@@ -147,18 +151,21 @@ function renderTopics() {
   }
   // by rate, the topics with too few papers for a steady rate after the others
   rows.sort((a, b) => Number(a.n < ENOUGH) - Number(b.n < ENOUGH) || b.r - a.r);
-  const table = el("table", { class: "topics" }, el("thead", {}, el("tr", {}, el("th", {}, "Topic"), el("th", {}, "Decided"), el("th", {}, "Accepted"), el("th", {}, "Rate (95% interval)"))));
+  const table = el("table", { class: "topics" }, el("caption", { class: "sr" }, `Topics' acceptance rates, ${all ? "all years" : `ICLR ${state.year}`}`),
+    el("thead", {}, el("tr", {}, ...["Topic", "Decided", "Accepted", "Rate (95% interval)"].map((h) => el("th", { scope: "col" }, h)))));
   const body = el("tbody");
   for (const t of rows) {
     const bar = el("span", { class: "ci", "aria-hidden": "true" }, el("span", { class: "ci-range", style: false }), el("span", { class: "ci-dot" }));
     bar.firstChild.style.left = `${t.ci[0] * 100}%`;
     bar.firstChild.style.width = `${(t.ci[1] - t.ci[0]) * 100}%`;
     bar.lastChild.style.left = `${t.r * 100}%`;
-    body.append(el("tr", { class: t.n < ENOUGH ? "few" : "" }, el("th", {}, t.label), el("td", {}, num(t.n)), el("td", {}, num(t.k)),
+    body.append(el("tr", { class: t.n < ENOUGH ? "few" : "" }, el("th", { scope: "row" }, t.label), el("td", {}, num(t.n)), el("td", {}, num(t.k)),
       el("td", {}, `${pct(t.r)} (${pct(t.ci[0])}–${pct(t.ci[1])}) `, bar)));
   }
   table.append(body);
-  $("topics").replaceChildren(rows.length ? table : el("p", { class: "meta" }, "No topic labels this year."));
+  const few = rows.some((t) => t.n < ENOUGH);
+  $("topics").replaceChildren(...(rows.length ? [table] : [el("p", { class: "meta" }, "No topic labels this year.")]),
+    few ? el("p", { class: "faint-note" }, `Greyed, and listed last: topics with fewer than ${ENOUGH} decided papers.`) : "");
 }
 
 // ------------------------------------------------------------------ the odds

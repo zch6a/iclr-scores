@@ -2,7 +2,7 @@
 name: iclr-scores
 description: How often ICLR papers with given review scores were accepted (2017-2025), where the acceptance line was each year, and how disagreement, withdrawals and topics played in, with iclr-scores. Use when the user asks what their ICLR scores mean, their chances after the reviews, or about ICLR's acceptance statistics.
 license: MIT
-compatibility: Needs Python 3.10+ and uv. Runs iclr-scores with uvx from GitHub (git+https://github.com/zch6a/iclr-scores@v0). odds and years fetch a 23 KB statistics file from the project's site; nothing else.
+compatibility: Needs Python 3.10+ and uv. Runs iclr-scores with uvx from GitHub (git+https://github.com/zch6a/iclr-scores). odds and years fetch a 23 KB statistics file from the project's site; nothing else.
 metadata:
   homepage: https://github.com/zch6a/iclr-scores
 ---
@@ -14,8 +14,8 @@ For people, the site is the quickest: https://zch6a.github.io/iclr-scores/ (char
 For an answer here:
 
 ```bash
-uvx --from git+https://github.com/zch6a/iclr-scores@v0 iclr-scores odds 6 6 8 5 --year 2025 --json
-uvx --from git+https://github.com/zch6a/iclr-scores@v0 iclr-scores years
+uvx --from git+https://github.com/zch6a/iclr-scores iclr-scores odds 6 6 8 5 --year 2025 --json
+uvx --from git+https://github.com/zch6a/iclr-scores iclr-scores years
 ```
 
 - Use the year the user's scores are from (or the latest, 2025, for a new submission) and say which; scales changed
