@@ -26,3 +26,10 @@ test("what is not a score is said, not dropped silently", () => {
   assert.ok(MAX_SCORES >= 12);
   assert.throws(() => odds(fixture.year, []));
 });
+
+test("a mean exactly on the window's edge counts on both sides", () => {
+  // 29/6 and 35/6 are both 0.5 from 16/3 (as stored: six decimals)
+  const year = { by_mean: [[4.833333, 20, 0], [5.833333, 20, 20]], scale: [4, 5, 6] };
+  const r = odds(year, [5, 5, 6]);
+  assert.deepEqual([r.window, r.papers, r.accepted], [0.5, 40, 20]);
+});

@@ -60,3 +60,35 @@ score, its numbers checked against the built statistics.
 Tests: 15 Python (doctests included) and 14 JS. ruff, ruff format, mypy clean.
 
 Next: polishing round 2 (an independent review of the code; the README's numbers against the build).
+
+### 2026-11-14 — polishing round 2
+
+**An independent review** (no crash and no injection path found; 10 findings, 8 fixed, each with a test where one can
+be written):
+- **The odds' window edge**: `by_mean` kept means to 2 decimals while the scores' mean was exact, so of two means
+  exactly 0.5 away (29/6 and 35/6 from 16/3) one was in the window and one out, and the window widened for nothing.
+  Means are kept to 6 decimals and compared with a tolerance of 1e-5, in Python and in `odds.js` alike.
+- **The model when the data cannot carry one**: a year whose papers share one mean got a model of `[0,0,0,0]`, shown as
+  “50%” for any scores; tied features (every paper with one score: spread 0, lowest = mean) gave meaningless
+  coefficients. The half-way point and the model now need 10 papers of each outcome and three distinct means, and the
+  model a design of full rank. The ridge no longer pulls the intercept (separated 3s and 8s tipped over at 5.38, now
+  5.50).
+- **The address**: clearing the box, or typing only what is not a score, left the old scores in the address (a reload
+  brought them back); an address edited in the open tab did nothing. Now the address always names what the box shows,
+  and a changed hash sets the year and the scores. Checked in the browser.
+- **The command** said nothing when no paper was near the mean; now it says so. A reply cut short
+  (`http.client.IncompleteRead`) escaped as a traceback from the download and from reading the published statistics;
+  now an error message. The download's size cap was the default dataset's, not the one given. A temporary file that
+  cannot be deleted (locked on Windows) no longer hides the real error.
+- **The half-way marker** is drawn only when it falls inside the chart.
+- **Topics** counted decided papers without scores, unlike every other figure (2018: 917 against 916); now the same.
+- Not changed: ties at the median spread go to “agree” (the page says “at most” the median, which is so); and nothing
+  else in the list affects the current data.
+
+**The README's numbers against the build**: all 22 checked by a script against `data/iclr.json` (decided papers, the
+2025 rates by mean score, the half-way points, agreement, withdrawals, the four topics, the file's size, the example
+odds); all the same, and checked again on the published data after this round's rebuild.
+
+Tests: 16 Python (doctests included) and 15 JS. ruff, ruff format, mypy clean.
+
+Next: polishing round 3 (the site at phone speed; keyboard and screen-reader use; the README's claims read again).

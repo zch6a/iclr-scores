@@ -12,6 +12,7 @@ papers are computed and published; no paper, author or reviewer is named.
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import sys
 import urllib.error
@@ -36,7 +37,7 @@ def read_stats(where: str) -> dict[str, Any]:
                 doc = json.loads(r.read(50_000_000))
         else:
             doc = json.loads(Path(where).read_text(encoding="utf-8"))
-    except (urllib.error.URLError, OSError) as e:
+    except (OSError, http.client.HTTPException) as e:  # URLError, timeouts, a reply cut short
         raise DataError(f"could not read the statistics from {where} ({getattr(e, 'reason', None) or e})") from e
     except ValueError as e:
         raise DataError(f"{where}: not JSON ({e})") from e
@@ -104,7 +105,9 @@ def _odds(args: argparse.Namespace, doc: dict[str, Any]) -> int:
         print(json.dumps(r, indent=2))
         return 0
     print(f"ICLR {args.year}, scores {' '.join(map(str, args.scores))} (mean {r['mean']:.2f}, spread {r['spread']:.2f}):")
-    if r["papers"]:
+    if not r["papers"]:
+        print(f"  no decided papers of {args.year} had a mean score within {r['window']:.2f} of that")
+    else:
         lo, hi = r["interval"]
         print(f"  {r['accepted']:,} of the {r['papers']:,} decided papers with a mean within {r['window']:.2f} were accepted: "
               f"{r['rate']:.0%} (95% interval {lo:.0%}-{hi:.0%})")  # fmt: skip

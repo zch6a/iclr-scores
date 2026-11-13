@@ -134,3 +134,40 @@ def test_the_calculators_fixture_is_current() -> None:
     spec.loader.exec_module(mod)
     on_disk = json.loads(mod.PATH.read_text(encoding="utf-8"))
     assert on_disk == json.loads(json.dumps(mod.fixture())), "run scripts/odds_fixture.py: the site's test fixture is out of date"
+
+
+def test_review_round_2(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+    import http.client
+
+    import numpy as np
+
+    from iclr_scores.stats import logistic
+
+    # a mean exactly on the window's edge counts on both sides: 29/6 and 35/6 are both 0.5 from 16/3
+    six = [Submission(2025, "reject", "", (5, 5, 5, 5, 5, 4), "")] * 20 + [Submission(2025, "accept", "poster", (6, 6, 6, 6, 6, 5), "")] * 20
+    y = year_stats(six)
+    r = odds(y, [5, 5, 6])
+    assert (r["window"], r["papers"], r["accepted"]) == (0.5, 40, 20)
+    # a year at one mean, or with too few of an outcome, gets no half-way point and no model (not "50% for any scores")
+    flat = year_stats([Submission(2025, "accept" if i % 2 else "reject", "", (10, 10, 10), "") for i in range(40)])
+    assert "half" not in flat and "model" not in flat
+    few = year_stats([Submission(2025, "accept", "", (8, 8, 8), "")] * 3 + [Submission(2025, "reject", "", (3, 3, 3), "")] * 50)
+    assert "model" not in few and "by_mean" in few
+    # the intercept is not pulled toward 0: separated 3s and 8s tip over at 5.5
+    b = logistic(np.array([[3.0]] * 50 + [[8.0]] * 50), np.array([0.0] * 50 + [1.0] * 50))
+    assert abs(-b[0] / b[1] - 5.5) < 0.01
+    # topics count the decided papers with scores, as everything else
+    t = topic_stats([Submission(2018, "reject", "", (), "GANs"), Submission(2018, "accept", "poster", (8, 8, 6), "GANs")])
+    assert t == {"GANs": {"2018": [1, 1]}}
+
+    # a reply cut short is an error message, not a traceback
+    def cut(url: str) -> bytes:
+        raise http.client.IncompleteRead(b"partial")
+
+    with pytest.raises(DataError, match="could not download"):
+        load(fetcher=cut)
+    # the command says when no paper is near
+    lone = {"format": FORMAT, "years": {"2025": {**year_stats(fake_year()), "by_mean": [[10.0, 40, 40]]}}}
+    (tmp_path / "lone.json").write_text(json.dumps(lone), encoding="utf-8")
+    assert cli.main(["odds", "6", "6", "6", "--year", "2025", "--stats", str(tmp_path / "lone.json")]) == 0
+    assert "no decided papers of 2025 had a mean score within 2.00" in capsys.readouterr().out

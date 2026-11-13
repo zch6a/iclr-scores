@@ -101,7 +101,7 @@ function render() {
   const half = y.half;
   chart($("rate"), {
     labels: shown, edges: shownEdges, caption: `Accepted share by mean score, ICLR ${state.year}`, series: [{ name: "accepted", cls: "acc", values: rate }],
-    marker: half ? { at: (half - edges[first]) / 0.5, text: `half accepted at ${half.toFixed(2)}` } : null,
+    marker: half && half >= edges[first] && half <= edges[last + 1] ? { at: (half - edges[first]) / 0.5, text: `half accepted at ${half.toFixed(2)}` } : null,
   });
   chart($("hist"), {
     labels: shown, edges: shownEdges, rate: false, caption: `Papers by mean score, ICLR ${state.year}`,
@@ -166,8 +166,10 @@ function renderTopics() {
 function calc() {
   const out = $("calc-out");
   const text = $("scores").value.trim();
-  if (!text) return out.replaceChildren();
   const { scores, bad } = parseScores(text);
+  const shown = scores.length && scores.length <= MAX_SCORES ? `#${state.year}/${scores.join(",")}` : `#${state.year}`;
+  if (location.hash !== shown) history.replaceState(null, "", shown); // the address names what the box shows
+  if (!text) return out.replaceChildren();
   const notes = [];
   if (bad.length) notes.push(el("p", { class: "meta warn" }, `Not read as scores: ${bad.slice(0, 5).join(" ")}${bad.length > 5 ? " …" : ""}. Scores are whole numbers from 0 to 10, e.g. 6 6 8 5.`));
   if (!scores.length) return out.replaceChildren(...(notes.length ? notes : [el("p", {}, "Scores are whole numbers from 0 to 10, e.g. 6 6 8 5.")]));
@@ -181,8 +183,6 @@ function calc() {
   if (scores.length < 3) parts.push(el("p", { class: "meta warn" }, `Almost every ICLR paper had 3 reviews or more (most had ${Object.entries(y.reviews).sort((a, b) => b[1] - a[1])[0][0]}); with ${scores.length === 1 ? "one score" : "two scores"} this compares with papers whose full set of reviews averaged the same.`));
   if (r.off_scale.length) parts.push(el("p", { class: "meta warn" }, `${r.off_scale.join(", ")} was not on ${state.year}'s scale (${y.scale.join(", ")}).`));
   out.replaceChildren(...notes, ...parts);
-  const hash = `#${state.year}/${scores.join(",")}`;
-  if (location.hash !== hash) history.replaceState(null, "", hash);
 }
 
 // ------------------------------------------------------------------ start
@@ -203,11 +203,16 @@ async function start() {
     state.doc = doc;
     const years = Object.keys(doc.years).filter((k) => doc.years[k].decided);
     for (const yr of years) $("years").append(el("button", { type: "button", "data-year": yr, "aria-pressed": "false", on: { click: () => pick(yr) } }, yr));
-    let hash = "";
-    try { hash = decodeURIComponent(location.hash.slice(1)); } catch { hash = ""; }
-    const [hy, hs] = hash.split("/");
-    if (hs) $("scores").value = parseScores(hs).scores.slice(0, MAX_SCORES).join(" ");
-    state.year = years.includes(hy) ? hy : years[years.length - 1];
+    // the address names a year and scores (#2025/6,6,8,5): read at the start and whenever it is changed in the tab
+    const fromHash = () => {
+      let hash = "";
+      try { hash = decodeURIComponent(location.hash.slice(1)); } catch { hash = ""; }
+      const [hy, hs] = hash.split("/");
+      $("scores").value = hs ? parseScores(hs).scores.slice(0, MAX_SCORES).join(" ") : "";
+      state.year = years.includes(hy) ? hy : years[years.length - 1];
+    };
+    fromHash();
+    window.addEventListener("hashchange", () => { fromHash(); render(); });
     const s = doc.source;
     $("source").replaceChildren("Data: the ", el("a", { href: s.url }, s.name), ` (${s.license}; scraped from ${s.origin}), built ${doc.built}. Please cite: ${s.cite}.`);
     $("calc-form").addEventListener("submit", (e) => { e.preventDefault(); calc(); });

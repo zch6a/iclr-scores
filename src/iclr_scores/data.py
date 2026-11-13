@@ -8,7 +8,9 @@ odds work on the built JSON without it.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
+import http.client
 import os
 import tempfile
 import urllib.error
@@ -108,10 +110,10 @@ def from_rows(rows: Iterable[dict[str, Any]]) -> list[Submission]:
 Fetcher = Callable[[str], bytes]
 
 
-def _fetch(url: str) -> bytes:
+def _fetch(url: str, size: int = DATASET.size) -> bytes:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=300) as r:
-        return bytes(r.read(DATASET.size + 1))
+        return bytes(r.read(size + 1))  # one byte more than expected: a longer file is refused by check()
 
 
 def check(data: bytes, dataset: Dataset = DATASET) -> None:
@@ -139,8 +141,8 @@ def load(local: Path | None = None, fetcher: Fetcher | None = None, dataset: Dat
         check(data, dataset)
         return read_parquet(local)
     try:
-        data = (fetcher or _fetch)(dataset.url)
-    except (urllib.error.URLError, OSError) as e:
+        data = fetcher(dataset.url) if fetcher else _fetch(dataset.url, dataset.size)
+    except (OSError, http.client.HTTPException) as e:  # URLError, timeouts, a reply cut short
         raise DataError(f"could not download {dataset.url} ({getattr(e, 'reason', None) or e})") from e
     check(data, dataset)
     fd, name = tempfile.mkstemp(suffix=".parquet", prefix="iclr-scores-")
@@ -149,4 +151,6 @@ def load(local: Path | None = None, fetcher: Fetcher | None = None, dataset: Dat
             f.write(data)
         return read_parquet(Path(name))
     finally:
-        os.unlink(name)
+        # a file still locked is left to the system's temporary folder, and the real error (if any) is the one said
+        with contextlib.suppress(OSError):
+            os.unlink(name)

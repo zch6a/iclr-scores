@@ -36,7 +36,7 @@ export function odds(year, scores) {
   const spread = Math.sqrt(scores.reduce((a, b) => a + (b - m) ** 2, 0) / scores.length);
   let window = 0.25, papers = 0, accepted = 0;
   for (;;) {
-    const cells = year.by_mean.filter((c) => Math.abs(c[0] - m) <= window + 1e-9);
+    const cells = year.by_mean.filter((c) => Math.abs(c[0] - m) <= window + 1e-5); // means are stored to 6 decimals
     papers = cells.reduce((a, c) => a + c[1], 0);
     accepted = cells.reduce((a, c) => a + c[2], 0);
     if (papers >= ENOUGH || window >= 2) break;

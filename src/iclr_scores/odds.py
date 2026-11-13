@@ -37,7 +37,7 @@ def odds(year: dict[str, Any], scores: list[int]) -> dict[str, Any]:
     m = mean(scores)
     window, n, k = 0.25, 0, 0
     while True:
-        cells = [c for c in year["by_mean"] if abs(c[0] - m) <= window + 1e-9]
+        cells = [c for c in year["by_mean"] if abs(c[0] - m) <= window + 1e-5]  # means are stored to 6 decimals
         n, k = sum(c[1] for c in cells), sum(c[2] for c in cells)
         if n >= ENOUGH or window >= 2:
             break

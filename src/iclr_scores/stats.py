@@ -14,6 +14,7 @@ import numpy as np
 from .data import DECIDED, LEVELS, OUTCOMES, Submission
 
 BIN = 0.5  # the width of the mean-score groups in charts
+MIN_EACH = 10  # accepted and not accepted papers at least, for the half-way point and the model
 
 
 def mean(s: Sequence[int]) -> float:
@@ -48,8 +49,8 @@ def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
 
 
 def logistic(x: np.ndarray, y: np.ndarray, ridge: float = 1e-4, iterations: int = 100) -> np.ndarray:
-    """Logistic regression by iteratively reweighted least squares (a column of ones is added first); a small ridge
-    keeps it finite when a feature separates the outcomes.
+    """Logistic regression by iteratively reweighted least squares (a column of ones is added first); a small ridge on
+    the features (not the intercept) keeps it finite when a feature separates the outcomes.
 
     >>> x = np.array([[1.0], [2.0], [3.0], [4.0], [5.0], [6.0]]); y = np.array([0, 0, 1, 0, 1, 1])
     >>> b = logistic(x, y); bool(b[1] > 0), round(float(-b[0] / b[1]), 2)
@@ -57,11 +58,13 @@ def logistic(x: np.ndarray, y: np.ndarray, ridge: float = 1e-4, iterations: int 
     """
     a = np.column_stack([np.ones(len(x)), x]).astype(np.float64)
     b = np.zeros(a.shape[1])
+    pen = ridge * np.eye(a.shape[1])
+    pen[0, 0] = 0.0
     for _ in range(iterations):
         p = 1 / (1 + np.exp(-np.clip(a @ b, -30, 30)))
         w = p * (1 - p) + 1e-9
-        h = a.T @ (a * w[:, None]) + ridge * np.eye(a.shape[1])
-        step = np.linalg.solve(h, a.T @ (y - p) - ridge * b)
+        h = a.T @ (a * w[:, None]) + pen
+        step = np.linalg.solve(h, a.T @ (y - p) - pen @ b)
         b += step
         if np.max(np.abs(step)) < 1e-10:
             break
@@ -103,10 +106,11 @@ def year_stats(subs: list[Submission]) -> dict[str, object]:
         if key:
             hist[key][_bin_of(mean(s.scores), edges)] += 1
     out["hist"] = hist
-    # the rate by exact mean score (the scale makes few distinct means): [mean, decided, accepted]
+    # the rate by exact mean score (the scale makes few distinct means): [mean, decided, accepted]; six decimals, so that
+    # a mean exactly on the edge of the odds' window is in it on both sides (29/6 and 35/6 are both 0.5 from 16/3)
     by_mean: dict[float, list[int]] = defaultdict(lambda: [0, 0])
     for s in decided:
-        cell = by_mean[round(mean(s.scores), 2)]
+        cell = by_mean[round(mean(s.scores), 6)]
         cell[0] += 1
         cell[1] += s.outcome == "accept"
     out["by_mean"] = [[m, n, k] for m, (n, k) in sorted(by_mean.items())]
@@ -115,10 +119,16 @@ def year_stats(subs: list[Submission]) -> dict[str, object]:
     spreads = np.array([spread(s.scores) for s in decided])
     lows = np.array([min(s.scores) for s in decided], dtype=float)
     y = np.array([s.outcome == "accept" for s in decided], dtype=float)
-    if 0 < y.sum() < len(y):
+    # (only when both outcomes have papers and the means differ: a year at one mean would get a model of 50% for any
+    # scores; the three features must not be tied to each other, as when every paper has one score)
+    both = min(int(y.sum()), int(len(y) - y.sum())) >= MIN_EACH and len(set(means.round(6))) >= 3
+    if both:
         b = logistic(means[:, None], y)
-        out["half"] = round(float(-b[0] / b[1]), 3) if b[1] > 0 else None
-        out["model"] = [round(float(v), 4) for v in logistic(np.column_stack([means, spreads, lows]), y)]
+        if b[1] > 0:
+            out["half"] = round(float(-b[0] / b[1]), 3)
+        x3 = np.column_stack([means, spreads, lows])
+        if np.linalg.matrix_rank(np.column_stack([np.ones(len(y)), x3])) == 4:
+            out["model"] = [round(float(v), 4) for v in logistic(x3, y)]
     # disagreement: in each group of mean scores, the rate when the reviewers agree more or less than the year's median
     split = float(np.median(spreads))
     out["spread_split"] = round(split, 3)
@@ -139,10 +149,10 @@ def year_stats(subs: list[Submission]) -> dict[str, object]:
 
 
 def topic_stats(subs: list[Submission]) -> dict[str, dict[str, list[int]]]:
-    """Each topic label's decided and accepted papers by year: {label: {year: [decided, accepted]}}."""
+    """Each topic label's decided papers with scores, and the accepted ones, by year: {label: {year: [decided, accepted]}}."""
     out: dict[str, dict[str, list[int]]] = defaultdict(lambda: defaultdict(lambda: [0, 0]))
     for s in subs:
-        if s.label and s.outcome in DECIDED:
+        if s.label and s.outcome in DECIDED and s.scores:
             cell = out[s.label][str(s.year)]
             cell[0] += 1
             cell[1] += s.outcome == "accept"
