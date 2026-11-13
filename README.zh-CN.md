@@ -64,6 +64,10 @@ uvx --from "iclr-scores[build] @ git+https://github.com/zch6a/iclr-scores@v0" ic
 
 [venue-atlas](https://github.com/zch6a/venue-atlas) 把每个会议的论文按内容画成地图 · [paper-impact](https://github.com/zch6a/paper-impact) 看它们的引用 · [submit-check](https://github.com/zch6a/submit-check) 在截稿前检查投稿。
 
+## 属于 research-kit
+
+这是 13 个开源科研工具之一，覆盖从读论文到论文发表之后。全部工具按科研流程的介绍，以及安装它们技能的 Claude Code 插件市场，见 [research-kit](https://github.com/zch6a/research-kit) · [网站](https://zch6a.github.io/research-kit/)。
+
 ## 许可证
 
 MIT。数据来自 Rita González-Márquez 和 Dmitry Kobak 的 ICLR 数据集（MIT 许可），原始内容来自 OpenReview。

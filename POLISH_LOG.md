@@ -178,3 +178,8 @@ Tests: 20 Python (doctests included) and 16 JS. ruff, ruff format, mypy clean.
 
 **v0.1.0**: tagged (annotated); the release workflow tests, builds the wheel and source archive, makes the GitHub
 release from the CHANGELOG section and points v0 at it.
+
+### 2026-11-14 — a link to research-kit
+
+Both READMEs now end (before the licence) with a short section pointing to research-kit, the toolkit's front door: all
+thirteen tools in the order of the work, and one Claude Code plugin marketplace for their skills. Documentation only.

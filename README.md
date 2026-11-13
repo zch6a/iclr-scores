@@ -92,6 +92,12 @@ file from the site), or a built one with `--stats` (the file, or the site folder
 [paper-impact](https://github.com/zch6a/paper-impact) shows their citations ·
 [submit-check](https://github.com/zch6a/submit-check) checks a submission before the deadline.
 
+## Part of research-kit
+
+One of thirteen open research tools, from reading papers to after publication. All of them, in the order of
+the work, with one Claude Code plugin marketplace for their skills: [research-kit](https://github.com/zch6a/research-kit)
+· [site](https://zch6a.github.io/research-kit/).
+
 ## License
 
 MIT. The data is the ICLR dataset by Rita González-Márquez and Dmitry Kobak (MIT), from OpenReview.
