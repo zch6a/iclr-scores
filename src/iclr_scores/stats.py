@@ -45,7 +45,8 @@ def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
     d = 1 + z * z / n
     c = (p + z * z / (2 * n)) / d
     h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
-    return max(0.0, c - h), min(1.0, c + h)
+    # none or all accepted: the interval ends at 0 or 1 exactly (the formula gives 2.8e-17 or 0.9999999999999999)
+    return (0.0 if k == 0 else max(0.0, c - h)), (1.0 if k == n else min(1.0, c + h))
 
 
 def logistic(x: np.ndarray, y: np.ndarray, ridge: float = 1e-4, iterations: int = 100) -> np.ndarray:
@@ -124,8 +125,9 @@ def year_stats(subs: list[Submission]) -> dict[str, object]:
     both = min(int(y.sum()), int(len(y) - y.sum())) >= MIN_EACH and len(set(means.round(6))) >= 3
     if both:
         b = logistic(means[:, None], y)
-        if b[1] > 0:
-            out["half"] = round(float(-b[0] / b[1]), 3)
+        half = float(-b[0] / b[1]) if b[1] > 0 else None
+        if half is not None and means.min() <= half <= means.max():  # outside the means seen, it says nothing (a flat fit puts it at 50)
+            out["half"] = round(half, 3)
         x3 = np.column_stack([means, spreads, lows])
         if np.linalg.matrix_rank(np.column_stack([np.ones(len(y)), x3])) == 4:
             out["model"] = [round(float(v), 4) for v in logistic(x3, y)]

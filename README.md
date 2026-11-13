@@ -21,7 +21,7 @@ fared better, and the odds for your own scores.
 <p align="center"><b><a href="https://zch6a.github.io/iclr-scores/">zch6a.github.io/iclr-scores</a></b></p>
 
 ```console
-$ uvx --from git+https://github.com/zch6a/iclr-scores iclr-scores odds 6 6 8 5 --year 2025
+$ uvx --from git+https://github.com/zch6a/iclr-scores@v0 iclr-scores odds 6 6 8 5 --year 2025
 ICLR 2025, scores 6 6 8 5 (mean 6.25, spread 1.09):
   1,667 of the 2,047 decided papers with a mean within 0.25 were accepted: 81% (95% interval 80%-83%)
   the year's model (mean, spread, lowest score) gives 81%
@@ -67,12 +67,13 @@ are kept in the address, so a link shows the same.
 ## Use it
 
 ```bash
-uvx --from git+https://github.com/zch6a/iclr-scores iclr-scores odds 6 6 8 5 --year 2025          # --json for scripts
-uvx --from git+https://github.com/zch6a/iclr-scores iclr-scores years
-uvx --from "iclr-scores[build] @ git+https://github.com/zch6a/iclr-scores" iclr-scores build --out site
+uvx --from git+https://github.com/zch6a/iclr-scores@v0 iclr-scores odds 6 6 8 5 --year 2025          # --json for scripts
+uvx --from git+https://github.com/zch6a/iclr-scores@v0 iclr-scores years
+uvx --from "iclr-scores[build] @ git+https://github.com/zch6a/iclr-scores@v0" iclr-scores build --out site
 ```
 
-`odds` and `years` read the published statistics (a 23 KB file from the site), or a built one with `--stats`.
+`@v0` is the latest release (drop it for the main branch). `odds` and `years` read the published statistics (a 23 KB
+file from the site), or a built one with `--stats` (the file, or the site folder it is in).
 `build` downloads the pinned file (49 MB), computes everything, deletes it, and writes the page with its data.
 
 ## Limits

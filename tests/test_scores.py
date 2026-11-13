@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import random
 from pathlib import Path
 
 import pytest
@@ -242,3 +243,14 @@ def test_the_command_on_odd_inputs(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert cli.main(["build", "--out", str(site), "--data", str(tmp_path / "nope.parquet")]) == 2
     err = capsys.readouterr().err
     assert "--data" in err and "no such file" in err
+
+
+def test_a_flat_fit_gives_no_half_way_point() -> None:
+    # acceptance unrelated to the scores: the fit is nearly flat and its 50% point far off the scale; it is not reported
+    subs = fake_year(n=600, seed=5)
+    rng = random.Random(1)
+    flat = [
+        Submission(s.year, rng.choice(["accept", "reject"]) if s.outcome in ("accept", "reject") else s.outcome, "", s.scores, s.label) for s in subs
+    ]
+    y = year_stats(flat)
+    assert y.get("half") is None or min(c[0] for c in y["by_mean"]) <= y["half"] <= max(c[0] for c in y["by_mean"])

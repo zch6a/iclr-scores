@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { MAX_SCORES, odds, parseScores } from "../site/odds.js";
+import { MAX_SCORES, odds, parseScores, wilson } from "../site/odds.js";
 
 const fixture = JSON.parse(readFileSync(new URL("../tests/fixtures/odds.json", import.meta.url), "utf8"));
 const close = (a, b, label) => assert.ok(Math.abs(a - b) < 1e-9, `${label}: ${a} vs ${b}`);
@@ -32,4 +32,10 @@ test("a mean exactly on the window's edge counts on both sides", () => {
   const year = { by_mean: [[4.833333, 20, 0], [5.833333, 20, 20]], scale: [4, 5, 6] };
   const r = odds(year, [5, 5, 6]);
   assert.deepEqual([r.window, r.papers, r.accepted], [0.5, 40, 20]);
+});
+
+test("none or all accepted: the interval ends at 0 or 1 exactly", () => {
+  assert.equal(wilson(6, 6)[1], 1);
+  assert.equal(wilson(0, 11)[0], 0);
+  for (let n = 1; n < 300; n++) for (let k = 0; k <= n; k++) { const [lo, hi] = wilson(k, n); assert.ok(lo <= k / n && k / n <= hi, `${k}/${n}`); }
 });

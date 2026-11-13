@@ -19,7 +19,7 @@
 <p align="center"><b><a href="https://zch6a.github.io/iclr-scores/">zch6a.github.io/iclr-scores</a></b></p>
 
 ```console
-$ uvx --from git+https://github.com/zch6a/iclr-scores iclr-scores odds 6 6 8 5 --year 2025
+$ uvx --from git+https://github.com/zch6a/iclr-scores@v0 iclr-scores odds 6 6 8 5 --year 2025
 ICLR 2025, scores 6 6 8 5 (mean 6.25, spread 1.09):
   1,667 of the 2,047 decided papers with a mean within 0.25 were accepted: 81% (95% interval 80%-83%)
   ...
@@ -46,12 +46,12 @@ ICLR 2025, scores 6 6 8 5 (mean 6.25, spread 1.09):
 ## 使用
 
 ```bash
-uvx --from git+https://github.com/zch6a/iclr-scores iclr-scores odds 6 6 8 5 --year 2025          # --json 给脚本用
-uvx --from git+https://github.com/zch6a/iclr-scores iclr-scores years
-uvx --from "iclr-scores[build] @ git+https://github.com/zch6a/iclr-scores" iclr-scores build --out site
+uvx --from git+https://github.com/zch6a/iclr-scores@v0 iclr-scores odds 6 6 8 5 --year 2025          # --json 给脚本用
+uvx --from git+https://github.com/zch6a/iclr-scores@v0 iclr-scores years
+uvx --from "iclr-scores[build] @ git+https://github.com/zch6a/iclr-scores@v0" iclr-scores build --out site
 ```
 
-`odds` 和 `years` 读取网站上公开的统计结果（一个 23 KB 的文件），也可以用 `--stats` 指定自己构建的文件。`build` 会下载固定版本的数据文件（49 MB），算完就删掉，再把网页和数据一起写出来。
+`@v0` 是最新的发布版（去掉它就用主分支）。`odds` 和 `years` 读取网站上公开的统计结果（一个 23 KB 的文件），也可以用 `--stats` 指定自己构建的文件（或它所在的网站文件夹）。`build` 会下载固定版本的数据文件（49 MB），算完就删掉，再把网页和数据一起写出来。
 
 ## 局限
 

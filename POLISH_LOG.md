@@ -150,3 +150,31 @@ Tests: 19 Python (doctests included; 18 and one skipped without pyarrow) and 15 
 
 Next: polishing round 5 (the documents read through; a fuzz of the statistics and the odds; the CHANGELOG as release
 notes), then v0.1.0.
+
+### 2026-11-14 — polishing round 5, and v0.1.0
+
+**Random inputs** (`scripts/fuzz.py`, new): random years of submissions (any outcome, 0–12 scores on six scales,
+labels or none) through the statistics with their invariants (the counts add up across the histograms, `by_mean`,
+agreement and withdrawals; rates in [0, 1]; the document is JSON); random scores through the odds (the rate inside its
+interval, the window at most 2); records of odd types through the reader; broken statistics files through
+`read_stats` (only a DataError). It found two real things:
+- **A flat fit's half-way point.** When acceptance has little to do with the scores, the fitted slope is near 0 and
+  its 50% point lands far off the scale (51.4 on a 1–10 scale); the page did not draw it, but the command printed
+  it. It is now reported only inside the range of the year's means (a test).
+- **The interval's ends.** With none or all of the papers accepted, the Wilson formula gives 2.8e-17 or
+  0.9999999999999999, so a 100% rate sat just outside its interval (146 of the pairs k/n up to 399). The ends are
+  now exactly 0 and 1, in Python and in `odds.js` (a test of every k/n up to 300 in JS).
+Then 300 rounds (seed 0) and 5,000 each with seeds 1 and 2: about 25,000 years, 102,000 odds, 15,000 records and
+5,000 broken files, no failure. (Two first failures were the fuzz script's own, fixed.)
+
+**The documents read through**: the commands use `@v0`, the release (README in both languages, the skill), with a note
+that dropping it gives the main branch; `--stats` takes a site folder too; SECURITY says the scores stay after `#`,
+which browsers do not send, and that `build` checks for pyarrow before downloading; CONTRIBUTING lists the fuzz
+script. Every version number is 0.1.0.
+
+**The CHANGELOG as release notes**: the data, what each year shows, the odds, the command, the site.
+
+Tests: 20 Python (doctests included) and 16 JS. ruff, ruff format, mypy clean.
+
+**v0.1.0**: tagged (annotated); the release workflow tests, builds the wheel and source archive, makes the GitHub
+release from the CHANGELOG section and points v0 at it.
