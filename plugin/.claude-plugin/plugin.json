@@ -1,0 +1,10 @@
+{
+  "name": "iclr-scores",
+  "description": "What ICLR's review scores led to, 2017-2025: the acceptance rate by mean score, the odds for a set of scores, disagreement, withdrawals and topics.",
+  "version": "0.1.0",
+  "author": { "name": "zch6a" },
+  "homepage": "https://github.com/zch6a/iclr-scores",
+  "repository": "https://github.com/zch6a/iclr-scores",
+  "license": "MIT",
+  "keywords": ["research", "peer-review", "iclr", "acceptance", "statistics", "claude-code"]
+}

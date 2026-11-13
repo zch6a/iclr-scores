@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<title>iclr-scores</title>
+<meta name="description" content="What ICLR's review scores led to, year by year: the acceptance rate by mean score, where half the papers were accepted, disagreement, withdrawals, topics, and the odds for your scores.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>iclr-scores <span>what ICLR's review scores led to</span></h1>
+  <nav id="years" aria-label="Year"></nav>
+  <p id="summary" aria-live="polite">Loading…</p>
+</header>
+<main>
+  <section id="calc" aria-labelledby="calc-h">
+    <h2 id="calc-h">Your scores</h2>
+    <form id="calc-form" autocomplete="off">
+      <label for="scores">The reviewers' scores</label>
+      <input id="scores" inputmode="numeric" placeholder="e.g. 6 6 8 5" aria-describedby="scale">
+      <button type="submit">See the odds</button>
+    </form>
+    <p id="scale" class="meta"></p>
+    <div id="calc-out" aria-live="polite"></div>
+  </section>
+  <section aria-labelledby="rate-h">
+    <h2 id="rate-h">Accepted, by mean score</h2>
+    <p class="meta">Of the papers that reached a decision, the share accepted, by their reviewers' mean score.</p>
+    <div id="rate" class="chart"></div>
+  </section>
+  <section aria-labelledby="hist-h">
+    <h2 id="hist-h">Mean scores, by outcome</h2>
+    <div id="hist" class="chart"></div>
+  </section>
+  <section aria-labelledby="agree-h">
+    <h2 id="agree-h">Same mean, more disagreement</h2>
+    <p class="meta" id="agree-note"></p>
+    <div id="agree" class="chart"></div>
+  </section>
+  <section aria-labelledby="withdraw-h">
+    <h2 id="withdraw-h">Withdrawn, by mean score</h2>
+    <p class="meta">Of the papers with scores, the share their authors withdrew.</p>
+    <div id="withdraw" class="chart"></div>
+  </section>
+  <section aria-labelledby="trend-h">
+    <h2 id="trend-h">Year by year</h2>
+    <div id="trend" class="chart"></div>
+  </section>
+  <section aria-labelledby="topics-h">
+    <h2 id="topics-h">Topics</h2>
+    <p class="meta">
+      Acceptance rate of the papers with each topic label (from their keywords; about half the papers have one), with its
+      95% interval. <label><input type="checkbox" id="all-years"> all years</label>
+    </p>
+    <div id="topics"></div>
+  </section>
+</main>
+<footer>
+  <p id="source"></p>
+  <p>Counts and rates over groups of papers only: no paper, author or reviewer is named. A rate of the past is not a
+  prediction: decisions also rest on the reviews' text, the discussion and the area chair.
+  <a href="https://github.com/zch6a/iclr-scores">Source</a>.</p>
+</footer>
+<script type="module" src="app.js"></script>
+</body>
+</html>

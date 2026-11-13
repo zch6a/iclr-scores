@@ -1,0 +1,10 @@
+__pycache__/
+*.egg-info/
+.venv/
+dist/
+.cache/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+site/data/
+node_modules/
