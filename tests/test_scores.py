@@ -33,7 +33,27 @@ def test_rows_from_the_dataset() -> None:
         from_rows([{"decision": "Reject", "scores": [1]}])
 
 
-def test_the_download_is_checked_and_not_kept(tmp_path: Path) -> None:
+def test_without_pyarrow_nothing_is_downloaded(monkeypatch: pytest.MonkeyPatch) -> None:
+    import builtins
+
+    real = builtins.__import__
+
+    def no_pyarrow(name: str, *a: object, **k: object) -> object:
+        if name.startswith("pyarrow"):
+            raise ImportError("no pyarrow here")
+        return real(name, *a, **k)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(builtins, "__import__", no_pyarrow)
+    fetched: list[str] = []
+    with pytest.raises(DataError, match="needs pyarrow"):
+        load(fetcher=lambda url: fetched.append(url) or b"")
+    assert fetched == []
+
+
+def test_the_download_is_checked_and_not_kept(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import iclr_scores.data as data
+
+    monkeypatch.setattr(data, "_parquet", lambda: None)  # these checks come before reading, with or without pyarrow
     with pytest.raises(DataError, match="not the pinned file"):
         load(fetcher=lambda url: b"not parquet")
     with pytest.raises(DataError, match="not the pinned file"):
@@ -164,6 +184,9 @@ def test_review_round_2(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureF
     def cut(url: str) -> bytes:
         raise http.client.IncompleteRead(b"partial")
 
+    import iclr_scores.data as data
+
+    monkeypatch.setattr(data, "_parquet", lambda: None)  # the download's errors, with or without pyarrow
     with pytest.raises(DataError, match="could not download"):
         load(fetcher=cut)
     # the command says when no paper is near
@@ -171,3 +194,51 @@ def test_review_round_2(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureF
     (tmp_path / "lone.json").write_text(json.dumps(lone), encoding="utf-8")
     assert cli.main(["odds", "6", "6", "6", "--year", "2025", "--stats", str(tmp_path / "lone.json")]) == 0
     assert "no decided papers of 2025 had a mean score within 2.00" in capsys.readouterr().out
+
+
+def test_reading_a_parquet_file(tmp_path: Path) -> None:
+    """The real reader on a small file of the dataset's shape (with the build extra; skipped without pyarrow)."""
+    import hashlib
+
+    pa = pytest.importorskip("pyarrow")
+    pq = pytest.importorskip("pyarrow.parquet")
+    table = pa.table({
+        "year": [2025, 2025, 2026],
+        "id": ["a", "b", "c"],
+        "title": ["T1", "T2", "T3"],
+        "decision": ["Accept (Oral)", "Reject", ""],
+        "scores": [[8, 8, 6], [3, 5], []],
+        "labels": ["LLMs", "unlabeled", "RL"],
+    })  # fmt: skip
+    f = tmp_path / "small.parquet"
+    pq.write_table(table, f)
+    data = f.read_bytes()
+    pinned = Dataset("small", "o/r", "c" * 40, "small.parquet", len(data), hashlib.sha256(data).hexdigest())
+    subs = load(f, dataset=pinned)
+    assert subs == [Submission(2025, "accept", "oral", (8, 8, 6), "LLMs"), Submission(2025, "reject", "", (3, 5), ""),
+                    Submission(2026, "undecided", "", (), "RL")]  # fmt: skip
+    subs = load(fetcher=lambda url: data, dataset=pinned)  # downloaded to a temporary file, read, deleted
+    assert len(subs) == 3
+
+
+def test_the_command_on_odd_inputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    site = tmp_path / "site"
+    monkeypatch.setattr(cli, "load", lambda local=None: fake_year())
+    assert cli.main(["build", "--out", str(site)]) == 0
+    capsys.readouterr()
+    assert cli.main(["odds", "6", "6", "8", "--year", "2025", "--stats", str(site)]) == 0  # a site folder: its data/iclr.json
+    assert "were accepted" in capsys.readouterr().out
+    # statistics not as this version writes them: a message, not a traceback
+    for year in ({"count": 1}, {"count": 1, "decided": 5, "accepted": 2, "scale": [1, 3], "by_mean": "oops"},
+                 {"count": 1, "decided": 5, "accepted": 2, "scale": [1, 3], "by_mean": [[6.0, 5, 2]], "model": [1, 2]}):  # fmt: skip
+        f = tmp_path / "odd.json"
+        f.write_text(json.dumps({"format": FORMAT, "years": {"2025": year}}), encoding="utf-8")
+        for command in (["years"], ["odds", "6", "6", "6", "--year", "2025"]):
+            assert cli.main([*command, "--stats", str(f)]) == 2
+            assert "not as this version writes it" in capsys.readouterr().err
+    f.write_text(json.dumps({"format": FORMAT, "years": {"2026": {"count": 9, "decided": 0, "accepted": 0, "scale": []}}}), encoding="utf-8")
+    assert cli.main(["odds", "6", "--year", "2026", "--stats", str(f)]) == 2
+    assert "no year in these statistics has any" in capsys.readouterr().err
+    assert cli.main(["build", "--out", str(site), "--data", str(tmp_path / "nope.parquet")]) == 2
+    err = capsys.readouterr().err
+    assert "--data" in err and "no such file" in err

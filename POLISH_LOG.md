@@ -121,3 +121,32 @@ Tests: 16 Python (doctests included) and 15 JS. ruff, ruff format, mypy clean.
 
 Next: polishing round 4 (engineering: a clean install from the wheel, the workflows' permissions and pins, a
 dependency audit, the CLI's edge cases).
+
+### 2026-11-14 — polishing round 4
+
+**A clean install** (the source archive, the wheel built from it, a new Python 3.10 environment): `--version`, the
+requirements (numpy; pyarrow under the `build` extra), `odds` on a built file — all fine; and `build` without pyarrow
+downloaded the whole 49 MB file before saying pyarrow was needed. Now it says so first (a test checks that nothing
+is fetched). Running the tests in an environment without pyarrow, as CI does, then caught a test of the download's
+errors that would have failed on CI (it now stubs the pyarrow check).
+
+**The real Parquet reader was never tested** (CI has no pyarrow): a test now writes a small file of the dataset's shape
+with pyarrow, pins it, and reads it from a path and through the download-to-a-temporary-file path (skipped without
+pyarrow); CI's packaging job runs the tests with the build extra.
+
+**Workflows and dependencies**: actions pinned to commits, read-only tokens, the Pages and release jobs that can write
+run nothing of the project, `--locked` everywhere, a timeout on every job; `pip-audit` on the 20 locked packages
+(the build extra and the dev tools included): no known vulnerabilities.
+
+**The command's edges**, probed one by one: statistics not shaped as this version writes them (a year without its
+counts, `by_mean` of the wrong type, a model of the wrong length) gave a `KeyError` or `TypeError` traceback from `years`
+and `odds`; now every year is checked on reading and the message says to build again. `--stats` naming a site folder
+said “Permission denied”; now it reads the folder's `data/iclr.json`. A year with no decided papers in statistics that
+have none listed “the years with them are” and nothing; now it says no year has any. `--data` naming a missing file
+gave a raw `Errno 2`; now a sentence. Already fine: missing arguments, a decimal or negative score, an unknown year, a
+file that is not JSON, an unreachable URL.
+
+Tests: 19 Python (doctests included; 18 and one skipped without pyarrow) and 15 JS. ruff, ruff format, mypy clean.
+
+Next: polishing round 5 (the documents read through; a fuzz of the statistics and the odds; the CHANGELOG as release
+notes), then v0.1.0.

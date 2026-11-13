@@ -36,14 +36,33 @@ def read_stats(where: str) -> dict[str, Any]:
             with urllib.request.urlopen(req, timeout=60) as r:
                 doc = json.loads(r.read(50_000_000))
         else:
-            doc = json.loads(Path(where).read_text(encoding="utf-8"))
+            path = Path(where)
+            if path.is_dir():  # a built site: its data/iclr.json
+                path = path / "data" / "iclr.json"
+            doc = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, http.client.HTTPException) as e:  # URLError, timeouts, a reply cut short
         raise DataError(f"could not read the statistics from {where} ({getattr(e, 'reason', None) or e})") from e
     except ValueError as e:
         raise DataError(f"{where}: not JSON ({e})") from e
     if not isinstance(doc, dict) or doc.get("format") != FORMAT or not isinstance(doc.get("years"), dict):
         raise DataError(f"{where}: not statistics this version reads (format {FORMAT})")
+    for key, year in doc["years"].items():
+        if not _year_ok(year):
+            raise DataError(f"{where}: year {key} is not as this version writes it; build the statistics again")
     return doc
+
+
+def _year_ok(year: object) -> bool:
+    """The fields `years` and `odds` read, of the types they expect."""
+    if not isinstance(year, dict):
+        return False
+    if not all(isinstance(year.get(k), int) for k in ("count", "decided", "accepted")) or not isinstance(year.get("scale"), list):
+        return False
+    cells = year.get("by_mean", [])
+    if not isinstance(cells, list) or not all(isinstance(c, list) and len(c) == 3 and all(isinstance(v, (int, float)) for v in c) for c in cells):
+        return False
+    model = year.get("model")
+    return model is None or (isinstance(model, list) and len(model) == 4 and all(isinstance(v, (int, float)) for v in model))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -85,6 +104,8 @@ def main(argv: list[str] | None = None) -> int:
 def _build(args: argparse.Namespace) -> int:
     if args.out.exists() and not args.out.is_dir():
         raise ValueError(f"--out {args.out}: a file, not a folder")
+    if args.data is not None and not args.data.is_file():
+        raise ValueError(f"--data {args.data}: no such file (a copy of the pinned dataset file, or leave it out to download it)")
     subs = load(args.data)
     doc = make(subs)
     page = write(doc, args.out)
@@ -98,7 +119,8 @@ def _odds(args: argparse.Namespace, doc: dict[str, Any]) -> int:
     year = doc["years"].get(str(args.year))
     if not year or not year.get("by_mean"):
         known = [k for k, v in doc["years"].items() if v.get("by_mean")]
-        raise ValueError(f"no decided papers with scores for {args.year}: the years with them are {', '.join(known)}")
+        have = f"the years with them are {', '.join(known)}" if known else "no year in these statistics has any"
+        raise ValueError(f"no decided papers with scores for {args.year}: {have}")
     r = odds(year, args.scores)
     r["year"] = args.year
     if args.json:

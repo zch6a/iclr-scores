@@ -121,11 +121,16 @@ def check(data: bytes, dataset: Dataset = DATASET) -> None:
         raise DataError(f"{dataset.name}: not the pinned file ({len(data):,} bytes; expected {dataset.size:,} and its SHA-256)")
 
 
-def read_parquet(path: Path) -> list[Submission]:
+def _parquet() -> Any:
     try:
         import pyarrow.parquet as pq
     except ImportError as e:
         raise DataError("reading the dataset needs pyarrow: pip install 'iclr-scores[build]' (or uv run --extra build)") from e
+    return pq
+
+
+def read_parquet(path: Path) -> list[Submission]:
+    pq = _parquet()
     try:
         table = pq.read_table(path, columns=["year", "decision", "scores", "labels"])
     except Exception as e:  # pyarrow's errors have no common base worth naming
@@ -136,6 +141,7 @@ def read_parquet(path: Path) -> list[Submission]:
 def load(local: Path | None = None, fetcher: Fetcher | None = None, dataset: Dataset = DATASET) -> list[Submission]:
     """The submissions: from `local` (a copy of the pinned file, checked) or downloaded to a temporary file that is
     deleted once read."""
+    _parquet()  # said before a 49 MB download, not after it
     if local is not None:
         data = local.read_bytes()
         check(data, dataset)
