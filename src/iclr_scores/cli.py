@@ -112,6 +112,8 @@ def _odds(args: argparse.Namespace, doc: dict[str, Any]) -> int:
         print(f"  the year's model (mean, spread, lowest score) gives {r['model']:.0%}")
     if year.get("half") is not None:
         print(f"  half the papers were accepted at a mean of about {year['half']:.2f}")
+    if len(args.scores) < 3:
+        print("  note: almost every ICLR paper had 3 reviews or more; this compares with papers whose full set of reviews averaged the same")
     if r["off_scale"]:
         print(f"  note: {', '.join(map(str, r['off_scale']))} is not on {args.year}'s scale ({', '.join(map(str, year['scale']))})")
     print("  a rate of the past, not a prediction: decisions also rest on the reviews' text, the discussion and the area chair")

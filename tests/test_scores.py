@@ -3,34 +3,16 @@
 from __future__ import annotations
 
 import json
-import random
 from pathlib import Path
 
 import pytest
+from helpers import fake_year
 
 from iclr_scores import cli
 from iclr_scores.build import FORMAT, make, write
 from iclr_scores.data import DATASET, DataError, Dataset, Submission, check, from_rows, load, outcome
 from iclr_scores.odds import odds
 from iclr_scores.stats import topic_stats, year_stats
-
-
-def fake_year(year: int = 2025, n: int = 2000, seed: int = 0) -> list[Submission]:
-    """Papers on the 1/3/5/6/8/10 scale; the chance of acceptance rises steeply around a mean of 6; a fifth of the
-    papers below 5 withdrawn; two topics, one accepted more often."""
-    rng = random.Random(seed)
-    out = []
-    for i in range(n):
-        scores = tuple(rng.choice([1, 3, 5, 5, 6, 6, 6, 8, 8, 10]) for _ in range(rng.choice([3, 4, 4, 5])))
-        m = sum(scores) / len(scores)
-        label = "graphs" if i % 2 else "robotics"
-        if m < 5 and rng.random() < 0.2:
-            out.append(Submission(year, "withdrawn", "", scores, label))
-            continue
-        p = 1 / (1 + 2.718 ** (-4 * (m - 6))) + (0.1 if label == "graphs" else 0)
-        acc = rng.random() < p
-        out.append(Submission(year, "accept" if acc else "reject", "poster" if acc else "", scores, label))
-    return out
 
 
 def test_decisions_as_openreview_words_them() -> None:
@@ -100,6 +82,10 @@ def test_odds() -> None:
     assert odds(y, [7, 6, 6])["off_scale"] == [7]
     with pytest.raises(ValueError):
         odds(y, [])
+    with pytest.raises(ValueError, match="from 0 to 10"):
+        odds(y, [6, 11])
+    with pytest.raises(ValueError, match="more than 12"):
+        odds(y, [6] * 13)
 
 
 def test_the_site_and_the_command(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
@@ -110,7 +96,7 @@ def test_the_site_and_the_command(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert "2,801 submissions, 3 years" in capsys.readouterr().out
     doc = json.loads((out / "data" / "iclr.json").read_text(encoding="utf-8"))
     assert doc["format"] == FORMAT and set(doc["years"]) == {"2024", "2025", "2026"}
-    assert all((out / f).is_file() for f in ("index.html", "app.js", "style.css"))  # a whole site
+    assert all((out / f).is_file() for f in ("index.html", "app.js", "odds.js", "style.css"))  # a whole site
     text = (out / "data" / "iclr.json").read_text(encoding="utf-8")
     assert "robotics" in text and "title" not in text and "author" not in text  # counts only: no paper is in it
     stats = str(out / "data" / "iclr.json")
@@ -137,3 +123,14 @@ def test_write_keeps_the_repository_page(tmp_path: Path) -> None:
     doc = make(fake_year(n=300))
     assert write(doc, tmp_path) is True
     assert json.loads((tmp_path / "data" / "iclr.json").read_text(encoding="utf-8"))["source"]["license"] == "MIT"
+
+
+def test_the_calculators_fixture_is_current() -> None:
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("odds_fixture", Path(__file__).parent.parent / "scripts" / "odds_fixture.py")
+    assert spec and spec.loader
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    on_disk = json.loads(mod.PATH.read_text(encoding="utf-8"))
+    assert on_disk == json.loads(json.dumps(mod.fixture())), "run scripts/odds_fixture.py: the site's test fixture is out of date"

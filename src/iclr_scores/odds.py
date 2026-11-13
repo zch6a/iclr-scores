@@ -12,6 +12,7 @@ from typing import Any
 from .stats import mean, spread, wilson
 
 ENOUGH = 30
+MAX_SCORES = 12  # more reviews than any ICLR paper had
 
 
 def odds(year: dict[str, Any], scores: list[int]) -> dict[str, Any]:
@@ -25,6 +26,10 @@ def odds(year: dict[str, Any], scores: list[int]) -> dict[str, Any]:
     """
     if not scores:
         raise ValueError("no scores given")
+    if any(not 0 <= s <= 10 for s in scores):
+        raise ValueError(f"scores are whole numbers from 0 to 10, not {' '.join(map(str, scores))}")
+    if len(scores) > MAX_SCORES:
+        raise ValueError(f"{len(scores)} scores: no ICLR paper had more than {MAX_SCORES} reviews")
     if not year.get("by_mean"):
         raise ValueError("that year has no decided papers with scores")
     scale = year.get("scale") or []

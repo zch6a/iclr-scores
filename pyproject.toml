@@ -40,6 +40,7 @@ packages = ["src/iclr_scores"]
 [tool.hatch.build.targets.wheel.force-include]  # the page, so `iclr-scores build` writes a whole site
 "site/index.html" = "iclr_scores/site/index.html"
 "site/app.js" = "iclr_scores/site/app.js"
+"site/odds.js" = "iclr_scores/site/odds.js"
 "site/style.css" = "iclr_scores/site/style.css"
 
 [tool.hatch.build.targets.sdist]

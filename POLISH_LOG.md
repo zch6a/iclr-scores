@@ -35,3 +35,28 @@ withdrawn; topics from 25% (CNNs) to 62% (3D scenes) over all years.
 Tests: 14 (doctests included), made-up submissions, no network and no pyarrow. ruff, ruff format, mypy clean.
 
 Next: polishing round 1 (the published site checked; a social card; the README's screenshot).
+
+### 2026-11-14 — polishing round 1
+
+**One calculator, tested against the other.** The page's odds moved into `site/odds.js` (pure, imported by `app.js`);
+`scripts/odds_fixture.py` writes `tests/fixtures/odds.json` — a made-up year's statistics, 13 sets of scores (one score,
+twelve, all 1s, all 10s, off the scale, far apart) and Python's odds for each — and `test/odds.test.js` checks the
+JavaScript against it: the window, the papers, the accepted, the rate, the interval, the model and the off-scale scores
+the same in all 13 (mean and spread to the 3 decimals Python prints). A Python test fails while the fixture is out of
+date; CI runs the node tests; the wheel and its check include `odds.js`.
+
+**What is typed.** The calculator dropped what it could not read without a word (`6 x 11 8` gave the odds of 6 8);
+now it says “Not read as scores: x 11” and computes from the rest; more than 12 scores is refused (no ICLR paper had
+more reviews); one or two scores get a note (almost every paper had three or more, so the comparison is with papers
+whose full set of reviews averaged the same — a single 8 showed “100% of 123”). The command refuses scores outside
+0–10 and more than 12, and prints the same note. Checked in the browser, input by input.
+
+**Every year on the site**, 2017–2025: each chart drawn, the half-way marker (6.12, 5.92, 5.97, 5.44, 6.03, 5.86, 5.83,
+5.84, 5.81), the topics (5 labelled in 2017, 41–54 later), the calculator, no console errors.
+
+**The social card** (`docs/social-preview.png`, from `scripts/social-card.html`): ICLR 2025's accepted share by mean
+score, its numbers checked against the built statistics.
+
+Tests: 15 Python (doctests included) and 14 JS. ruff, ruff format, mypy clean.
+
+Next: polishing round 2 (an independent review of the code; the README's numbers against the build).

@@ -1,9 +1,10 @@
 // iclr-scores: the page. Reads data/iclr.json (built by `iclr-scores build`) and draws every chart as SVG with its
 // numbers also in a table, so nothing is only a picture.
 
+import { ENOUGH, MAX_SCORES, odds, parseScores, wilson } from "./odds.js";
+
 const $ = (id) => document.getElementById(id);
 const SVG = "http://www.w3.org/2000/svg";
-const ENOUGH = 30; // papers at least, for the odds' window and for a rate to be drawn as solid
 const state = { doc: null, year: "" };
 
 /** @param {string} tag @param {Record<string, any>} attrs @param {...(Node|string)} kids */
@@ -26,13 +27,6 @@ function svg(tag, attrs = {}, text = "") {
 const pct = (x) => `${Math.round(x * 100)}%`;
 const num = (x) => Number(x).toLocaleString("en");
 const range = (edges, i) => `${edges[i].toFixed(1)}–${edges[i + 1].toFixed(1)}`;
-
-function wilson(k, n, z = 1.96) {
-  if (!n) return [0, 1];
-  const p = k / n, d = 1 + (z * z) / n, c = (p + (z * z) / (2 * n)) / d;
-  const h = (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / d;
-  return [Math.max(0, c - h), Math.min(1, c + h)];
-}
 
 /**
  * A bar chart with its table. Each series is {name, cls, values: [{value, n, text}]}; values are rates (0..1) when
@@ -169,37 +163,24 @@ function renderTopics() {
 
 // ------------------------------------------------------------------ the odds
 
-function parseScores(text) {
-  return text.split(/[\s,;/]+/).filter(Boolean).map(Number).filter((x) => Number.isInteger(x) && x >= 0 && x <= 10);
-}
-
 function calc() {
   const out = $("calc-out");
   const text = $("scores").value.trim();
   if (!text) return out.replaceChildren();
-  const scores = parseScores(text);
-  if (!scores.length) return out.replaceChildren(el("p", {}, "Scores are whole numbers from 0 to 10, e.g. 6 6 8 5."));
+  const { scores, bad } = parseScores(text);
+  const notes = [];
+  if (bad.length) notes.push(el("p", { class: "meta warn" }, `Not read as scores: ${bad.slice(0, 5).join(" ")}${bad.length > 5 ? " …" : ""}. Scores are whole numbers from 0 to 10, e.g. 6 6 8 5.`));
+  if (!scores.length) return out.replaceChildren(...(notes.length ? notes : [el("p", {}, "Scores are whole numbers from 0 to 10, e.g. 6 6 8 5.")]));
+  if (scores.length > MAX_SCORES) return out.replaceChildren(el("p", { class: "meta warn" }, `${scores.length} scores: no ICLR paper had more than ${MAX_SCORES} reviews.`));
   const y = state.doc.years[state.year];
-  const m = scores.reduce((a, b) => a + b, 0) / scores.length;
-  const sd = Math.sqrt(scores.reduce((a, b) => a + (b - m) ** 2, 0) / scores.length);
-  let w = 0.25, n = 0, k = 0;
-  for (;;) {
-    const cells = y.by_mean.filter((c) => Math.abs(c[0] - m) <= w + 1e-9);
-    n = cells.reduce((a, c) => a + c[1], 0);
-    k = cells.reduce((a, c) => a + c[2], 0);
-    if (n >= ENOUGH || w >= 2) break;
-    w += 0.25;
-  }
-  const parts = [el("p", { class: "big" }, n ? pct(k / n) : "–"), el("p", {}, n
-    ? `${num(k)} of the ${num(n)} decided papers of ICLR ${state.year} with a mean score within ${w.toFixed(2)} of ${m.toFixed(2)} were accepted (95% interval ${wilson(k, n).map(pct).join("–")}).`
+  const r = odds(y, scores);
+  const parts = [el("p", { class: "big" }, r.papers ? pct(r.rate) : "–"), el("p", {}, r.papers
+    ? `${num(r.accepted)} of the ${num(r.papers)} decided papers of ICLR ${state.year} with a mean score within ${r.window.toFixed(2)} of ${r.mean.toFixed(2)} were accepted (95% interval ${r.interval.map(pct).join("–")}).`
     : "No decided papers with a mean score near that.")];
-  if (y.model) {
-    const [b0, b1, b2, b3] = y.model, z = b0 + b1 * m + b2 * sd + b3 * Math.min(...scores);
-    parts.push(el("p", { class: "meta" }, `The year's model of the rate, from the mean, the spread (${sd.toFixed(2)}) and the lowest score: ${pct(1 / (1 + Math.exp(-Math.max(-30, Math.min(30, z)))))}.`));
-  }
-  const off = [...new Set(scores.filter((s) => !y.scale.includes(s)))];
-  if (off.length) parts.push(el("p", { class: "meta warn" }, `${off.join(", ")} was not on ${state.year}'s scale (${y.scale.join(", ")}).`));
-  out.replaceChildren(...parts);
+  if (r.model !== null) parts.push(el("p", { class: "meta" }, `The year's model of the rate, from the mean, the spread (${r.spread.toFixed(2)}) and the lowest score: ${pct(r.model)}.`));
+  if (scores.length < 3) parts.push(el("p", { class: "meta warn" }, `Almost every ICLR paper had 3 reviews or more (most had ${Object.entries(y.reviews).sort((a, b) => b[1] - a[1])[0][0]}); with ${scores.length === 1 ? "one score" : "two scores"} this compares with papers whose full set of reviews averaged the same.`));
+  if (r.off_scale.length) parts.push(el("p", { class: "meta warn" }, `${r.off_scale.join(", ")} was not on ${state.year}'s scale (${y.scale.join(", ")}).`));
+  out.replaceChildren(...notes, ...parts);
   const hash = `#${state.year}/${scores.join(",")}`;
   if (location.hash !== hash) history.replaceState(null, "", hash);
 }
@@ -208,7 +189,8 @@ function calc() {
 
 function pick(year) {
   state.year = year;
-  history.replaceState(null, "", `#${year}${$("scores").value.trim() ? `/${parseScores($("scores").value).join(",")}` : ""}`);
+  const { scores } = parseScores($("scores").value);
+  history.replaceState(null, "", `#${year}${scores.length ? `/${scores.join(",")}` : ""}`);
   render();
 }
 
@@ -224,7 +206,7 @@ async function start() {
     let hash = "";
     try { hash = decodeURIComponent(location.hash.slice(1)); } catch { hash = ""; }
     const [hy, hs] = hash.split("/");
-    if (hs) $("scores").value = parseScores(hs).join(" ");
+    if (hs) $("scores").value = parseScores(hs).scores.slice(0, MAX_SCORES).join(" ");
     state.year = years.includes(hy) ? hy : years[years.length - 1];
     const s = doc.source;
     $("source").replaceChildren("Data: the ", el("a", { href: s.url }, s.name), ` (${s.license}; scraped from ${s.origin}), built ${doc.built}. Please cite: ${s.cite}.`);

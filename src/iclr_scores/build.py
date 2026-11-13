@@ -12,7 +12,7 @@ from .data import CITATION, DATASET, Submission
 from .stats import topic_stats, year_stats
 
 FORMAT = "iclr-scores/1"
-PAGE = ("index.html", "app.js", "style.css")
+PAGE = ("index.html", "app.js", "odds.js", "style.css")
 
 
 def make(subs: list[Submission]) -> dict[str, Any]:
